@@ -139,95 +139,64 @@ HTML_TEMPLATE = r"""
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Weather.ai</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      /* Small visual helpers */
-      .glass { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); backdrop-filter: blur(6px); }
-    </style>
   </head>
-  <body class="bg-gradient-to-b from-sky-900 via-slate-900 to-slate-800 text-slate-100 min-h-screen">
-    <div class="max-w-6xl mx-auto p-6">
-      <header class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-4xl font-extrabold tracking-tight">Weather.ai</h1>
-          <p class="text-slate-300 mt-1">Simple, beautiful weather with Human Comfort Index</p>
+  <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center">
+    <div class="max-w-xl w-full p-6">
+      <h1 class="text-3xl font-bold mb-4">Weather.ai</h1>
+
+      <div class="mb-4">
+        <input id="location-input" type="text" placeholder="Enter city or 'lat,lon'" class="w-full p-3 rounded-md bg-slate-800 border border-slate-700" />
+        <div class="mt-3 grid grid-cols-3 gap-2">
+          <select id="units" class="p-2 rounded-md bg-slate-800 border border-slate-700">
+            <option value="metric">Celsius</option>
+            <option value="imperial">Fahrenheit</option>
+          </select>
+          <select id="forecast_days" class="p-2 rounded-md bg-slate-800 border border-slate-700">
+            <option value="0">Now</option>
+            <option value="1">1 day</option>
+            <option value="2">2 days</option>
+            <option value="3">3 days</option>
+          </select>
+          <label class="flex items-center gap-2"><input id="include_aqi" type="checkbox"/> Include AQI</label>
         </div>
-        <div class="text-sm text-slate-400">Local time: <span id="local-time">--</span></div>
-      </header>
+        <button id="fetch-weather-btn" class="mt-3 w-full p-3 bg-blue-600 rounded-md">Get Weather</button>
+      </div>
 
-      <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left: Big weather card -->
-        <section class="lg:col-span-2 glass rounded-2xl p-6 shadow-xl flex flex-col">
-          <div class="flex items-start justify-between">
-            <div>
-              <div id="loc" class="text-2xl font-bold">--</div>
-              <div id="cond" class="text-slate-300 mt-1 flex items-center gap-3"><img id="cond_icon" src="" class="w-10 h-10" alt=""/> <span>--</span></div>
-            </div>
-            <div class="text-right">
-              <div id="temp" class="text-6xl font-extrabold">--</div>
-              <div class="text-sm text-slate-300">Feels like: <span id="feels">--</span></div>
-            </div>
+      <div id="status-message" class="mb-3 text-sm opacity-80"></div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div id="hci-card" class="bg-amber-500/10 p-4 rounded-md flex flex-col items-center justify-center">
+          <div class="text-sm text-amber-300">Human Comfort Index</div>
+          <div id="hci-value" class="text-3xl font-bold">--</div>
+          <div id="comfort-badge" class="mt-2 px-3 py-1 rounded-full text-sm">--</div>
+          <div id="comfort-desc" class="mt-2 text-xs text-slate-300 text-center">--</div>
+        </div>
+        <div class="md:col-span-2 bg-slate-800 p-4 rounded-md" id="weather-output">
+        <p id="loc" class="text-xl font-semibold">--</p>
+        <div class="flex items-center gap-3">
+          <img id="cond_icon" src="" alt="icon" class="w-12 h-12"/>
+          <p id="cond" class="text-sm text-slate-300">--</p>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mt-3">
+          <div>
+            <div class="text-xs text-slate-400">Temp (°C)</div>
+            <div id="temp" class="text-lg font-bold">--</div>
           </div>
-
-          <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="p-4 bg-slate-900/40 rounded-lg">
-              <div class="text-xs text-slate-400">HCI</div>
-              <div id="hci-value" class="text-xl font-bold">--</div>
-              <div id="comfort-badge" class="mt-2 inline-block px-3 py-1 rounded-full text-sm">--</div>
-            </div>
-            <div class="p-4 bg-slate-900/40 rounded-lg">
-              <div class="text-xs text-slate-400">Humidity</div>
-              <div id="hum" class="text-xl font-bold">--</div>
-            </div>
-            <div class="p-4 bg-slate-900/40 rounded-lg">
-              <div class="text-xs text-slate-400">Wind</div>
-              <div id="wind" class="text-xl font-bold">--</div>
-            </div>
+          <div>
+            <div class="text-xs text-slate-400">Humidity</div>
+            <div id="hum" class="text-lg font-bold">--</div>
           </div>
-
-          <div class="mt-6">
-            <h3 class="text-sm text-slate-300 mb-2">Forecast</h3>
-            <div id="forecast" class="flex gap-3 overflow-x-auto py-2"></div>
+          <div>
+            <div class="text-xs text-slate-400">Wind (m/s)</div>
+            <div id="wind" class="text-lg font-bold">--</div>
           </div>
-        </section>
-
-        <!-- Right: Controls & AQI -->
-        <aside class="glass rounded-2xl p-6 shadow-xl">
-          <div class="mb-4">
-            <label class="block text-sm text-slate-300 mb-2">Location</label>
-            <input id="location-input" type="text" placeholder="Enter city or 'lat,lon'" class="w-full p-3 rounded-md bg-slate-800 border border-slate-700" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 mb-4">
-            <select id="units" class="p-2 rounded-md bg-slate-800 border border-slate-700">
-              <option value="metric">Celsius</option>
-              <option value="imperial">Fahrenheit</option>
-            </select>
-            <select id="forecast_days" class="p-2 rounded-md bg-slate-800 border border-slate-700">
-              <option value="0">Now</option>
-              <option value="1">1 day</option>
-              <option value="2">2 days</option>
-              <option value="3">3 days</option>
-            </select>
-          </div>
-
-          <div class="flex items-center gap-2 mb-4">
-            <input id="include_aqi" type="checkbox" class="h-4 w-4" />
-            <label class="text-sm text-slate-300">Include AQI</label>
-          </div>
-
-          <button id="fetch-weather-btn" class="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-lg font-semibold shadow">Get Weather</button>
-
-          <div id="status-message" class="mt-4 text-sm text-slate-300"></div>
-
-          <div id="aqi" class="mt-6 text-sm text-slate-300"></div>
-        </aside>
-      </main>
-
-      <footer class="mt-8 text-center text-xs text-slate-500">Powered by WeatherAPI • HCI = (temperature + relative humidity) / 4</footer>
+        </div>
+        <div id="aqi" class="mt-3 text-sm text-slate-300"></div>
+        <div id="forecast" class="mt-3 text-sm text-slate-300"></div>
+      </div>
     </div>
 
     <script>
-      // The original JS uses the same element IDs; we keep the fetch logic below.
       document.addEventListener('DOMContentLoaded', () => {
         const fetchButton = document.getElementById('fetch-weather-btn');
         const locInput = document.getElementById('location-input');
@@ -253,14 +222,10 @@ HTML_TEMPLATE = r"""
             });
             const data = await r.json();
             if(!r.ok){ status.textContent = data.error || 'Error'; return; }
-
-            // Basic fields
             outLoc.textContent = data.location_name;
             outCond.textContent = data.condition;
             outTemp.textContent = data.temperature_c + (units === 'metric' ? ' °C' : ' °F');
-            document.getElementById('local-time').textContent = data.local_time || '';
-
-            // HCI and comfort
+            // HCI and comfort indicators
             const hciVal = document.getElementById('hci-value');
             const comfortBadge = document.getElementById('comfort-badge');
             const comfortDesc = document.getElementById('comfort-desc');
@@ -268,36 +233,34 @@ HTML_TEMPLATE = r"""
             if(data.comfort_level){
               comfortBadge.textContent = `${data.comfort_emoji} ${data.comfort_level}`;
               comfortDesc.textContent = data.comfort_description || '';
+              // apply simple class if provided
               if(data.comfort_class){ comfortBadge.className = 'mt-2 px-3 py-1 rounded-full text-sm ' + data.comfort_class; }
-            } else { comfortBadge.textContent = '--'; comfortDesc.textContent = ''; }
-
-            // Condition icon
+            } else {
+              comfortBadge.textContent = '--';
+              comfortDesc.textContent = '';
+            }
+            // Condition icon (WeatherAPI icons often start with //)
             const iconEl = document.getElementById('cond_icon');
-            if(data.condition_icon){ iconEl.src = data.condition_icon.startsWith('//') ? 'https:' + data.condition_icon : data.condition_icon; iconEl.style.display='inline-block'; } else { iconEl.style.display='none'; }
-
+            if(data.condition_icon){
+              iconEl.src = data.condition_icon.startsWith('//') ? 'https:' + data.condition_icon : data.condition_icon;
+              iconEl.style.display = 'inline-block';
+            } else { iconEl.style.display = 'none'; }
             outHum.textContent = data.humidity + ' %';
             outWind.textContent = data.wind_speed + ' m/s';
             status.textContent = 'Updated: ' + (data.local_time || '');
 
-            // Forecast cards
+            // If forecast provided, render it
             const forecastEl = document.getElementById('forecast');
-            forecastEl.innerHTML = '';
             if(data.forecast && data.forecast.length){
-              data.forecast.forEach(d => {
-                const card = document.createElement('div');
-                card.className = 'min-w-[160px] p-3 bg-slate-900/40 rounded-lg';
-                card.innerHTML = `<div class="text-sm text-slate-300">${d.date}</div><div class="font-bold mt-1">${d.condition}</div><div class="text-xs text-slate-400 mt-2">Avg ${d.avgtemp_c}°C · Min ${d.mintemp_c}°C</div>`;
-                forecastEl.appendChild(card);
-              });
-            }
+              forecastEl.innerHTML = data.forecast.map(d => `<div class="p-2 bg-slate-700 rounded-md mt-2">${d.date}: ${d.condition} — ${d.avgtemp_c} °C (min ${d.mintemp_c}, max ${d.maxtemp_c})</div>`).join('');
+            } else { forecastEl.innerHTML = ''; }
 
-            // AQI
+            // If AQI included, render a small summary
             const aqiEl = document.getElementById('aqi');
             if(data.aqi){
               const pm25 = data.aqi.pm2_5 || data.aqi['pm2_5'] || null;
               aqiEl.textContent = 'Air Quality (PM2.5): ' + (pm25 ? pm25.toFixed(2) : 'N/A');
             } else { aqiEl.textContent = ''; }
-
           }catch(e){
             status.textContent = 'Network error';
           }finally{ fetchButton.disabled = false; }
