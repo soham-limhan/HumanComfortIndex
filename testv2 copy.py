@@ -513,7 +513,13 @@ HTML_TEMPLATE = r"""
           <div id="comfort-badge" class="mt-2 px-3 py-1 rounded-full text-sm">--</div>
           <div id="comfort-desc" class="mt-2 text-xs text-slate-300 text-center">--</div>
           <div class="mt-2 text-xs text-slate-300">Weighted HCI: <span id="weighted-hci">--</span></div>
-          <div class="mt-1 text-xs text-slate-300">Components: <span id="component-scores">--</span></div>
+          <div class="mt-1 text-xs text-slate-400">
+            <div>AQI: <span id="comp-aqi">--</span></div>
+            <div>Temp: <span id="comp-temp">--</span></div>
+            <div>Humidity: <span id="comp-humidity">--</span></div>
+            <div>UV: <span id="comp-uv">--</span></div>
+            <div>Wind: <span id="comp-wind">--</span></div>
+          </div>
           <div class="mt-2 text-xs text-slate-300">Band: <span id="comfort-band">--</span></div>
           <div class="mt-1 text-xs text-slate-300">Env: <span id="comfort-env">--</span></div>
           <div class="mt-1 text-xs text-slate-300">Rec: <span id="comfort-rec">--</span></div>
@@ -588,9 +594,21 @@ HTML_TEMPLATE = r"""
             if(data.hci){ hciVal.textContent = data.hci; } else { hciVal.textContent = '--'; }
             // Weighted HCI from profile (if present)
             const wEl = document.getElementById('weighted-hci');
-            const compEl = document.getElementById('component-scores');
             if(data.weighted_hci){ wEl.textContent = data.weighted_hci + ' (profile: ' + (data.profile_used || '-') + ')'; } else { wEl.textContent = '--'; }
-            if(data.component_scores){ compEl.textContent = JSON.stringify(data.component_scores); } else { compEl.textContent = ''; }
+            // Component scores - formatted
+            if(data.component_scores){
+              document.getElementById('comp-aqi').textContent = data.component_scores.aqi_score !== null ? data.component_scores.aqi_score.toFixed(1) : '--';
+              document.getElementById('comp-temp').textContent = data.component_scores.temp_score !== null ? data.component_scores.temp_score.toFixed(1) : '--';
+              document.getElementById('comp-humidity').textContent = data.component_scores.humidity_score !== null ? data.component_scores.humidity_score.toFixed(1) : '--';
+              document.getElementById('comp-uv').textContent = data.component_scores.uv_score !== null ? data.component_scores.uv_score.toFixed(1) : '--';
+              document.getElementById('comp-wind').textContent = data.component_scores.wind_score !== null ? data.component_scores.wind_score.toFixed(1) : '--';
+            } else {
+              document.getElementById('comp-aqi').textContent = '--';
+              document.getElementById('comp-temp').textContent = '--';
+              document.getElementById('comp-humidity').textContent = '--';
+              document.getElementById('comp-uv').textContent = '--';
+              document.getElementById('comp-wind').textContent = '--';
+            }
             // Comfort interpretation
             const bandEl = document.getElementById('comfort-band');
             const envEl = document.getElementById('comfort-env');
