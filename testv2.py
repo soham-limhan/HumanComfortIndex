@@ -251,6 +251,44 @@ def get_weather():
           except Exception:
             pm25 = None
 
+    # Compute component scores for current conditions (used to derive profile HCI)
+    comp_scores = compute_component_scores(temp_c, rh, uv_index, float(current.get('wind_kph', 0)), pm25)
+    result['component_scores'] = comp_scores
+
+    # Compute HCI for every profile so we can clamp forecast HCI values
+    profile_hcis = {}
+    for prof, weights in PROFILE_WEIGHTS.items():
+      contrib = 0.0
+      wsum = 0.0
+      if comp_scores.get('aqi_score') is not None and weights.get('aqi'):
+        contrib += weights['aqi'] * comp_scores['aqi_score']
+        wsum += weights['aqi']
+      if comp_scores.get('temp_score') is not None and weights.get('temp'):
+        contrib += weights['temp'] * comp_scores['temp_score']
+        wsum += weights['temp']
+      if comp_scores.get('humidity_score') is not None and weights.get('humidity'):
+        contrib += weights['humidity'] * comp_scores['humidity_score']
+        wsum += weights['humidity']
+      if comp_scores.get('uv_score') is not None and weights.get('uv'):
+        contrib += weights['uv'] * comp_scores['uv_score']
+        wsum += weights['uv']
+      if comp_scores.get('wind_score') is not None and weights.get('wind'):
+        contrib += weights['wind'] * comp_scores['wind_score']
+        wsum += weights['wind']
+      if wsum > 0:
+        norm_contrib = contrib / wsum
+        prof_hci = 100.0 - norm_contrib
+        profile_hcis[prof] = round(prof_hci, 2)
+      else:
+        profile_hcis[prof] = None
+    result['profile_hcis'] = profile_hcis
+
+    # Determine which HCI baseline to use for clamping forecast HCI (profile-specific if available)
+    sel_profile = (data.get('profile') or 'general').lower()
+    current_hci_baseline = profile_hcis.get(sel_profile) if profile_hcis.get(sel_profile) is not None else (float(hci) if hci is not None else None)
+    # store chosen baseline as top-level hci in result (string/number preserved)
+    result['hci'] = current_hci_baseline
+
     if 'forecast' in weather_data and weather_data.get('forecast'):
       for day in weather_data['forecast'].get('forecastday', []):
         day_info = day.get('day', {})
@@ -314,42 +352,7 @@ def get_weather():
         })
       result['forecast'] = forecast_days_data
 
-      # Compute component scores (always, even if AQI not present)
-      comp_scores = compute_component_scores(temp_c, rh, uv_index, float(current.get('wind_kph',0)), pm25)
-      result['component_scores'] = comp_scores
-      # Compute HCI for every profile so UI can display per-profile values
-      profile_hcis = {}
-      for prof, weights in PROFILE_WEIGHTS.items():
-        contrib = 0.0
-        wsum = 0.0
-        if comp_scores.get('aqi_score') is not None and weights.get('aqi'):
-          contrib += weights['aqi'] * comp_scores['aqi_score']
-          wsum += weights['aqi']
-        if comp_scores.get('temp_score') is not None and weights.get('temp'):
-          contrib += weights['temp'] * comp_scores['temp_score']
-          wsum += weights['temp']
-        if comp_scores.get('humidity_score') is not None and weights.get('humidity'):
-          contrib += weights['humidity'] * comp_scores['humidity_score']
-          wsum += weights['humidity']
-        if comp_scores.get('uv_score') is not None and weights.get('uv'):
-          contrib += weights['uv'] * comp_scores['uv_score']
-          wsum += weights['uv']
-        if comp_scores.get('wind_score') is not None and weights.get('wind'):
-          contrib += weights['wind'] * comp_scores['wind_score']
-          wsum += weights['wind']
-        if wsum > 0:
-          norm_contrib = contrib / wsum
-          prof_hci = 100.0 - norm_contrib
-          profile_hcis[prof] = round(prof_hci, 2)
-        else:
-          profile_hcis[prof] = None
-      result['profile_hcis'] = profile_hcis
-      # If the user requested a profile, set top-level HCI to that value; otherwise default to 'general'
-      sel_profile = (data.get('profile') or 'general').lower()
-      result['hci'] = profile_hcis.get(sel_profile)
-      if include_aqi and aqi_data:
-        result['aqi'] = aqi_data
-
+      
       # If profile provided, compute profile-weighted HCI using the new formula
       profile = data.get('profile')
       if profile:
@@ -508,7 +511,12 @@ HTML_TEMPLATE = r"""
   </head>
   <body class="bg-slate-900 text-slate-100 min-h-screen p-6">
     <div class="max-w-6xl mx-auto">
-      <h1 class="text-4xl font-bold mb-6">Weather.ai</h1>
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-4xl font-bold">Weather.ai</h1>
+        <div class="flex items-center gap-3">
+          <a href="/visualization" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md shadow">Open Dashboard</a>
+        </div>
+      </div>
 
       <div class="mb-4">
         <input id="location-input" type="text" placeholder="Enter city or 'lat,lon'" class="w-full p-3 rounded-md bg-slate-800 border border-slate-700" />
@@ -965,9 +973,145 @@ HTML_TEMPLATE = r"""
 """
 
 
+VIS_TEMPLATE = r"""
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Weather.ai — Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  </head>
+  <body class="bg-slate-900 text-slate-100 min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+      <header class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl font-bold">Visualization Dashboard</h1>
+          <div class="text-sm text-slate-400">Analytical view • PowerBI-like tiles</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md">Back</a>
+        </div>
+      </header>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div class="col-span-1 bg-indigo-700/10 p-4 rounded shadow">
+          <label class="text-sm text-slate-300">Location</label>
+          <input id="viz-location" class="w-full mt-2 p-2 rounded bg-slate-800 border border-slate-700" placeholder="Enter city or 'lat,lon'" />
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <select id="viz-units" class="p-2 rounded bg-slate-800 border border-slate-700">
+              <option value="metric">Celsius</option>
+              <option value="imperial">Fahrenheit</option>
+            </select>
+            <button id="viz-fetch" class="p-2 bg-indigo-600 rounded">Refresh</button>
+          </div>
+          <div class="mt-4 space-y-3">
+            <div class="p-3 bg-slate-800 rounded">
+              <div class="text-xs text-slate-400">HCI</div>
+              <div id="viz-hci" class="text-2xl font-bold">--</div>
+            </div>
+            <div class="p-3 bg-slate-800 rounded">
+              <div class="text-xs text-slate-400">Temperature</div>
+              <div id="viz-temp" class="text-2xl font-bold">--</div>
+            </div>
+            <div class="p-3 bg-slate-800 rounded">
+              <div class="text-xs text-slate-400">Humidity</div>
+              <div id="viz-hum" class="text-2xl font-bold">--</div>
+            </div>
+            <div class="p-3 bg-slate-800 rounded">
+              <div class="text-xs text-slate-400">AQI (PM2.5)</div>
+              <div id="viz-aqi" class="text-2xl font-bold">--</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-3 grid grid-cols-1 gap-4">
+          <div class="bg-slate-800 p-4 rounded">
+            <canvas id="viz-hciChart"></canvas>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-slate-800 p-4 rounded"><canvas id="viz-tempChart"></canvas></div>
+            <div class="bg-slate-800 p-4 rounded"><canvas id="viz-humidityChart"></canvas></div>
+            <div class="bg-slate-800 p-4 rounded"><canvas id="viz-windChart"></canvas></div>
+          </div>
+          <div class="bg-slate-800 p-4 rounded"><canvas id="viz-monthlyChart"></canvas></div>
+        </div>
+      </div>
+
+    <script>
+      async function fetchViz(location, units){
+        const resp = await fetch('/api/get_weather', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:location, units:units, forecast_days:3, include_aqi:true})});
+        const data = await resp.json();
+        return data;
+      }
+
+      function renderKPIs(data){
+        document.getElementById('viz-hci').textContent = data.hci || '--';
+        document.getElementById('viz-temp').textContent = data.temperature_c ? data.temperature_c + ' °C' : '--';
+        document.getElementById('viz-hum').textContent = data.humidity ? data.humidity + ' %' : '--';
+        if(data.aqi){
+          const pm25 = data.aqi.pm2_5 || data.aqi['pm2_5'] || null;
+          document.getElementById('viz-aqi').textContent = pm25 ? pm25.toFixed(1) : 'N/A';
+        } else { document.getElementById('viz-aqi').textContent = '--'; }
+      }
+
+      // minimal chart helpers
+      let vizCharts = [];
+      function clearVizCharts(){ vizCharts.forEach(c=>c.destroy()); vizCharts=[]; }
+
+      async function refreshViz(){
+        const loc = document.getElementById('viz-location').value || 'London';
+        const units = document.getElementById('viz-units').value;
+        const data = await fetchViz(loc, units);
+        renderKPIs(data);
+        clearVizCharts();
+
+        // HCI + forecast
+        const labels = [data.current_date || 'Today', ...(data.forecast||[]).map(f=>f.date)];
+        const hciData = [data.hci ? parseFloat(data.hci) : null, ...(data.forecast||[]).map(f=>f.possible_hci?parseFloat(f.possible_hci):null)];
+        const ctxHci = document.getElementById('viz-hciChart').getContext('2d');
+        vizCharts.push(new Chart(ctxHci, {type:'line', data:{labels:labels,datasets:[{label:'HCI', data:hciData, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.08)', fill:true}]}, options:{responsive:true}}));
+
+        // small charts
+        const tempLabels = labels;
+        const tempData = [data.avgtemp_c?parseFloat(data.avgtemp_c):null, ...(data.forecast||[]).map(f=>f.avgtemp_c?parseFloat(f.avgtemp_c):null)];
+        vizCharts.push(new Chart(document.getElementById('viz-tempChart').getContext('2d'), {type:'bar', data:{labels:tempLabels,datasets:[{label:'Temp (°C)',data:tempData,backgroundColor:'#60a5fa'}]}, options:{responsive:true}}));
+
+        const humData = [data.humidity?parseFloat(data.humidity):null, ...(data.forecast||[]).map(f=>f.humidity?parseFloat(f.humidity):null)];
+        vizCharts.push(new Chart(document.getElementById('viz-humidityChart').getContext('2d'), {type:'line', data:{labels:tempLabels,datasets:[{label:'Humidity %',data:humData,borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,0.06)',fill:true}]}, options:{responsive:true}}));
+
+        const windData = [data.wind_kph?parseFloat(data.wind_kph):null, ...(data.forecast||[]).map(f=>f.wind_kph?parseFloat(f.wind_kph):null)];
+        vizCharts.push(new Chart(document.getElementById('viz-windChart').getContext('2d'), {type:'bar', data:{labels:tempLabels,datasets:[{label:'Wind kph',data:windData,backgroundColor:'#34d399'}]}, options:{responsive:true}}));
+
+        // monthly chart: simulate if missing
+        const days = Array.from({length:30},(_,i)=>i+1);
+        const base = data.avgtemp_c ? parseFloat(data.avgtemp_c) : (data.temperature_c?parseFloat(data.temperature_c):20);
+        const monthly = days.map(d => Math.round((base + Math.sin(d/5)*4 + (Math.random()-0.5)*2)*10)/10);
+        vizCharts.push(new Chart(document.getElementById('viz-monthlyChart').getContext('2d'), {type:'line', data:{labels:days.map(d=>'Day '+d),datasets:[{label:'Month Temp (°C)',data:monthly,borderColor:'#fb7185',backgroundColor:'rgba(251,113,133,0.06)',fill:true}]}, options:{responsive:true}}));
+      }
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        document.getElementById('viz-fetch').addEventListener('click', refreshViz);
+        // initial
+        document.getElementById('viz-location').value = 'London';
+        refreshViz();
+      });
+    </script>
+  </body>
+</html>
+"""
+
+
+
 @app.route('/')
 def index():
   return render_template_string(HTML_TEMPLATE)
+
+
+@app.route('/visualization')
+def visualization():
+  return render_template_string(VIS_TEMPLATE)
 
 if __name__ == '__main__':
     # Using host='0.0.0.0' for environment compatibility
