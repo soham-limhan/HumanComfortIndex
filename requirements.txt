@@ -2,5 +2,4 @@ Flask
 requests
 pandas
 numpy
-matplotlib
-scikit-learn
+plotly

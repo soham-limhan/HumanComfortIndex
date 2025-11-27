@@ -4,9 +4,6 @@ import json
 import base64
 from io import BytesIO
 from flask import Flask, request, jsonify, render_template_string
-import plotly.graph_objects as go
-import plotly.io as pio
-import numpy as np
 
 # Flask app and WeatherAPI key
 app = Flask(__name__)
@@ -1007,28 +1004,14 @@ VIS_TEMPLATE = r"""
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Weather.ai — Visualization</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
-      .plotly-container { 
-        width: 100% !important; 
-        height: 100% !important;
-      }
-      .plotly { 
-        width: 100% !important; 
-        height: 100% !important;
-      }
-      #chart-hci, #chart-temp, #chart-humidity, #chart-wind, #chart-monthly {
-        width: 100%;
-        height: 100%;
-      }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   </head>
   <body class="bg-slate-900 text-slate-100 min-h-screen p-6">
     <div class="max-w-7xl mx-auto">
       <header class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-3xl font-bold">Visualization Dashboard</h1>
-          <div class="text-sm text-slate-400">Interactive Charts with Hover Details • Plotly</div>
+          <div class="text-sm text-slate-400">Analytical view • PowerBI-like tiles</div>
         </div>
         <div class="flex items-center gap-3">
           <a href="/" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md">Back</a>
@@ -1043,7 +1026,7 @@ VIS_TEMPLATE = r"""
             <select id="viz-units" class="p-2 rounded bg-slate-800 border border-slate-700">
               <option value="metric">Celsius</option>
             </select>
-            <button id="viz-fetch" class="p-2 bg-indigo-600 rounded hover:bg-indigo-700">Refresh</button>
+            <button id="viz-fetch" class="p-2 bg-indigo-600 rounded">Refresh</button>
           </div>
           <div class="mt-4 space-y-3">
             <div class="p-3 bg-slate-800 rounded">
@@ -1066,17 +1049,15 @@ VIS_TEMPLATE = r"""
         </div>
 
         <div class="lg:col-span-3 grid grid-cols-1 gap-4">
-          <div class="bg-slate-800 p-4 rounded shadow border border-slate-700 h-96">
-            <div id="chart-hci" style="width:100%;height:100%;"></div>
+          <div class="bg-slate-800 p-4 rounded">
+            <canvas id="viz-hciChart"></canvas>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-slate-800 p-4 rounded shadow border border-slate-700 h-80"><div id="chart-temp" style="width:100%;height:100%;"></div></div>
-            <div class="bg-slate-800 p-4 rounded shadow border border-slate-700 h-80"><div id="chart-humidity" style="width:100%;height:100%;"></div></div>
-            <div class="bg-slate-800 p-4 rounded shadow border border-slate-700 h-80"><div id="chart-wind" style="width:100%;height:100%;"></div></div>
+            <div class="bg-slate-800 p-4 rounded"><canvas id="viz-tempChart"></canvas></div>
+            <div class="bg-slate-800 p-4 rounded"><canvas id="viz-humidityChart"></canvas></div>
+            <div class="bg-slate-800 p-4 rounded"><canvas id="viz-windChart"></canvas></div>
           </div>
-          <div class="bg-slate-800 p-4 rounded shadow border border-slate-700 h-96">
-            <div id="chart-monthly" style="width:100%;height:100%;"></div>
-          </div>
+          <div class="bg-slate-800 p-4 rounded"><canvas id="viz-monthlyChart"></canvas></div>
         </div>
       </div>
 
@@ -1085,12 +1066,6 @@ VIS_TEMPLATE = r"""
         const resp = await fetch('/api/get_weather', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({query:location, units:units, forecast_days:3, include_aqi:true})});
         const data = await resp.json();
         return data;
-      }
-
-      async function generateCharts(location) {
-        const resp = await fetch('/api/generate_charts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({location:location})});
-        const charts = await resp.json();
-        return charts;
       }
 
       function renderKPIs(data){
@@ -1103,32 +1078,141 @@ VIS_TEMPLATE = r"""
         } else { document.getElementById('viz-aqi').textContent = '--'; }
       }
 
+      // minimal chart helpers
+      let vizCharts = [];
+      function clearVizCharts(){ vizCharts.forEach(c=>c.destroy()); vizCharts=[]; }
+
       async function refreshViz(){
         const loc = document.getElementById('viz-location').value || 'London';
         const units = document.getElementById('viz-units').value;
+        const data = await fetchViz(loc, units);
+        renderKPIs(data);
+        clearVizCharts();
+
+        // Set canvas parent heights
+        document.getElementById('viz-hciChart').parentElement.style.minHeight = '300px';
+        document.getElementById('viz-tempChart').parentElement.style.minHeight = '250px';
+        document.getElementById('viz-humidityChart').parentElement.style.minHeight = '250px';
+        document.getElementById('viz-windChart').parentElement.style.minHeight = '250px';
+        document.getElementById('viz-monthlyChart').parentElement.style.minHeight = '350px';
+
+        const labels = [data.current_date || 'Today', ...(data.forecast||[]).map(f=>f.date)];
+        const hciData = [data.hci ? parseFloat(data.hci) : null, ...(data.forecast||[]).map(f=>f.possible_hci?parseFloat(f.possible_hci):null)];
         
-        try {
-          const data = await fetchViz(loc, units);
-          renderKPIs(data);
-          
-          const charts = await generateCharts(loc);
-          if(charts.error) {
-            console.error('Chart generation error:', charts.error);
-          } else {
-            // Render each chart using Plotly.newPlot
-            Plotly.newPlot('chart-hci', charts.hci.data, charts.hci.layout, {responsive: true});
-            Plotly.newPlot('chart-temp', charts.temperature.data, charts.temperature.layout, {responsive: true});
-            Plotly.newPlot('chart-humidity', charts.humidity.data, charts.humidity.layout, {responsive: true});
-            Plotly.newPlot('chart-wind', charts.wind.data, charts.wind.layout, {responsive: true});
-            Plotly.newPlot('chart-monthly', charts.monthly.data, charts.monthly.layout, {responsive: true});
+        // HCI Chart with proper styling
+        const ctxHci = document.getElementById('viz-hciChart').getContext('2d');
+        vizCharts.push(new Chart(ctxHci, {
+          type:'line',
+          data:{
+            labels:labels,
+            datasets:[{
+              label:'HCI (Current & Possible)',
+              data:hciData,
+              borderColor:'#fbbf24',
+              backgroundColor:'rgba(251, 191, 36, 0.1)',
+              fill:true,
+              tension:0.4,
+              pointRadius:5,
+              pointBackgroundColor:labels.map((_,i)=>i===0?'#10b981':'#fbbf24'),
+              pointBorderColor:labels.map((_,i)=>i===0?'#059669':'#f59e0b'),
+              pointBorderWidth:2
+            }]
+          },
+          options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{
+              legend:{labels:{color:'#cbd5e1', font:{size:11}}},
+              title:{display:true, text:'HCI Trend', color:'#cbd5e1'}
+            },
+            scales:{
+              y:{min:0,max:100,ticks:{color:'#cbd5e1'},grid:{color:'#334155'}},
+              x:{ticks:{color:'#cbd5e1'},grid:{color:'#334155'}}
+            }
           }
-        } catch (err) {
-          console.error('Error refreshing visualization:', err);
-        }
+        }));
+
+        // Temperature Chart
+        const tempLabels = labels;
+        const tempData = [data.avgtemp_c?parseFloat(data.avgtemp_c):null, ...(data.forecast||[]).map(f=>f.avgtemp_c?parseFloat(f.avgtemp_c):null)];
+        vizCharts.push(new Chart(document.getElementById('viz-tempChart').getContext('2d'), {
+          type:'bar',
+          data:{
+            labels:tempLabels,
+            datasets:[{
+              label:'Temp (°C)',
+              data:tempData,
+              backgroundColor:tempLabels.map((_,i)=>i===0?'#10b981':'#60a5fa'),
+              borderColor:tempLabels.map((_,i)=>i===0?'#059669':'#3b82f6'),
+              borderWidth:1
+            }]
+          },
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1',font:{size:11}}},title:{display:true,text:'Temperature',color:'#cbd5e1'}},scales:{y:{ticks:{color:'#cbd5e1'},grid:{color:'#334155'}},x:{ticks:{color:'#cbd5e1'},grid:{color:'#334155'}}}}
+        }));
+
+        // Humidity Chart
+        const humData = [data.humidity?parseFloat(data.humidity):null, ...(data.forecast||[]).map(f=>f.humidity?parseFloat(f.humidity):null)];
+        vizCharts.push(new Chart(document.getElementById('viz-humidityChart').getContext('2d'), {
+          type:'line',
+          data:{
+            labels:tempLabels,
+            datasets:[{
+              label:'Humidity %',
+              data:humData,
+              borderColor:tempLabels.map((_,i)=>i===0?'#10b981':'#06b6d4'),
+              backgroundColor:tempLabels.map((_,i)=>i===0?'rgba(16,185,129,0.1)':'rgba(6,182,212,0.06)'),
+              fill:true,
+              tension:0.4,
+              pointRadius:tempLabels.map((_,i)=>i===0?5:3),
+              pointBackgroundColor:tempLabels.map((_,i)=>i===0?'#10b981':'#06b6d4')
+            }]
+          },
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1',font:{size:11}}},title:{display:true,text:'Humidity',color:'#cbd5e1'}},scales:{y:{min:0,max:100,ticks:{color:'#cbd5e1'},grid:{color:'#334155'}},x:{ticks:{color:'#cbd5e1'},grid:{color:'#334155'}}}}
+        }));
+
+        // Wind Chart
+        const windData = [data.wind_kph?parseFloat(data.wind_kph):null, ...(data.forecast||[]).map(f=>f.wind_kph?parseFloat(f.wind_kph):null)];
+        vizCharts.push(new Chart(document.getElementById('viz-windChart').getContext('2d'), {
+          type:'bar',
+          data:{
+            labels:tempLabels,
+            datasets:[{
+              label:'Wind (kph)',
+              data:windData,
+              backgroundColor:tempLabels.map((_,i)=>i===0?'#10b981':'#34d399'),
+              borderColor:tempLabels.map((_,i)=>i===0?'#059669':'#10b981'),
+              borderWidth:1
+            }]
+          },
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1',font:{size:11}}},title:{display:true,text:'Wind Speed',color:'#cbd5e1'}},scales:{y:{ticks:{color:'#cbd5e1'},grid:{color:'#334155'}},x:{ticks:{color:'#cbd5e1'},grid:{color:'#334155'}}}}
+        }));
+
+        // Monthly Temperature Chart
+        const days = Array.from({length:30},(_,i)=>i+1);
+        const base = data.avgtemp_c ? parseFloat(data.avgtemp_c) : (data.temperature_c?parseFloat(data.temperature_c):20);
+        const monthly = days.map(d => Math.round((base + Math.sin(d/5)*4 + (Math.random()-0.5)*2)*10)/10);
+        vizCharts.push(new Chart(document.getElementById('viz-monthlyChart').getContext('2d'), {
+          type:'line',
+          data:{
+            labels:days.map(d=>'Day '+d),
+            datasets:[{
+              label:'Daily Temperature (°C)',
+              data:monthly,
+              borderColor:'#f97316',
+              backgroundColor:'rgba(249, 115, 22, 0.05)',
+              fill:true,
+              tension:0.3,
+              pointRadius:3,
+              pointBackgroundColor:'#f97316'
+            }]
+          },
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1',font:{size:11}}},title:{display:true,text:'Monthly Temperature Trend',color:'#cbd5e1'}},scales:{y:{ticks:{color:'#cbd5e1'},grid:{color:'#334155'}},x:{ticks:{color:'#cbd5e1',maxTicksLimit:10},grid:{color:'#334155'}}}}
+        }));
       }
 
       document.addEventListener('DOMContentLoaded', ()=>{
         document.getElementById('viz-fetch').addEventListener('click', refreshViz);
+        // initial
         document.getElementById('viz-location').value = 'London';
         refreshViz();
       });
@@ -1142,133 +1226,6 @@ VIS_TEMPLATE = r"""
 @app.route('/')
 def index():
   return render_template_string(HTML_TEMPLATE)
-
-
-@app.route('/api/generate_charts', methods=['POST'])
-def generate_charts():
-  """Generate interactive Plotly charts as JSON"""
-  try:
-    data = request.get_json()
-    location = data.get('location', 'London')
-    profile = data.get('profile', 'general')
-    
-    # Call the get_weather endpoint to get processed data with possible_hci
-    weather_resp = requests.post('http://127.0.0.1:5000/api/get_weather', 
-                                 json={'query': location, 'profile': profile, 'forecast_days': 3, 'include_aqi': True})
-    weather_data = weather_resp.json()
-    
-    if 'error' in weather_data:
-      return jsonify({'error': weather_data['error']}), 400
-    
-    forecast_custom = weather_data.get('forecast', [])
-    
-    # Extract data from the custom forecast structure (which has possible_hci)
-    labels = ['Today'] + [f.get('date', '') for f in forecast_custom]
-    # Get HCI from weather_data result which has the computed HCI values
-    current_hci = float(weather_data.get('hci', 50)) if weather_data.get('hci') is not None else 50.0
-    hci_values = [current_hci] + [float(f.get('possible_hci', 50)) if f.get('possible_hci') is not None else 50.0 for f in forecast_custom]
-    temp_values = [float(weather_data.get('avgtemp_c', 20)) if weather_data.get('avgtemp_c') is not None else 20.0] + [float(f.get('avgtemp_c', 20)) if f.get('avgtemp_c') is not None else 20.0 for f in forecast_custom]
-    humidity_values = [float(weather_data.get('humidity', 50)) if weather_data.get('humidity') is not None else 50.0] + [float(f.get('avghumidity', 50)) if f.get('avghumidity') is not None else 50.0 for f in forecast_custom]
-    wind_values = [float(weather_data.get('wind_kph', 10)) if weather_data.get('wind_kph') is not None else 10.0] + [float(f.get('wind_kph', 10)) if f.get('wind_kph') is not None else 10.0 for f in forecast_custom]
-    
-    charts = {}
-    
-    # 1. HCI Trend
-    fig_hci = go.Figure()
-    fig_hci.add_trace(go.Scatter(
-      x=labels, y=hci_values, mode='lines+markers', name='HCI Trend',
-      line=dict(color='#fbbf24', width=3),
-      marker=dict(size=10, color='#fbbf24', line=dict(color='#f59e0b', width=2)),
-      fill='tozeroy', fillcolor='rgba(251, 191, 36, 0.2)',
-      hovertemplate='<b>%{x}</b><br>HCI: %{y:.1f}<extra></extra>'
-    ))
-    fig_hci.update_layout(
-      title='HCI Trend', xaxis_title='Day', yaxis_title='HCI Score',
-      hovermode='x unified', plot_bgcolor='#0f172a', paper_bgcolor='#1e293b',
-      font=dict(color='#cbd5e1'), height=350, margin=dict(l=50, r=50, t=60, b=50),
-      yaxis=dict(range=[0, 100]),
-      xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#334155'),
-      yaxis_showgrid=True, yaxis_gridwidth=1, yaxis_gridcolor='#334155'
-    )
-    charts['hci'] = json.loads(pio.to_json(fig_hci))
-    
-    # 2. Temperature
-    fig_temp = go.Figure()
-    colors = ['#10b981' if i == 0 else '#60a5fa' for i in range(len(labels))]
-    fig_temp.add_trace(go.Bar(x=labels, y=temp_values, name='Temperature',
-      marker=dict(color=colors, line=dict(color='#334155', width=1)),
-      hovertemplate='<b>%{x}</b><br>Temperature: %{y:.1f}°C<extra></extra>'
-    ))
-    fig_temp.update_layout(
-      title='Temperature', xaxis_title='Day', yaxis_title='°C',
-      hovermode='x unified', plot_bgcolor='#0f172a', paper_bgcolor='#1e293b',
-      font=dict(color='#cbd5e1'), height=300, margin=dict(l=50, r=30, t=60, b=50),
-      showlegend=False,
-      xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#334155'),
-      yaxis_showgrid=True, yaxis_gridwidth=1, yaxis_gridcolor='#334155'
-    )
-    charts['temperature'] = json.loads(pio.to_json(fig_temp))
-    
-    # 3. Humidity
-    fig_hum = go.Figure()
-    fig_hum.add_trace(go.Scatter(x=labels, y=humidity_values, mode='lines+markers', name='Humidity',
-      line=dict(color='#06b6d4', width=3),
-      marker=dict(size=9, color='#06b6d4', line=dict(color='#0891b2', width=2)),
-      fill='tozeroy', fillcolor='rgba(6, 182, 212, 0.2)',
-      hovertemplate='<b>%{x}</b><br>Humidity: %{y:.0f}%<extra></extra>'
-    ))
-    fig_hum.update_layout(
-      title='Humidity', xaxis_title='Day', yaxis_title='%',
-      hovermode='x unified', plot_bgcolor='#0f172a', paper_bgcolor='#1e293b',
-      font=dict(color='#cbd5e1'), height=300, margin=dict(l=50, r=30, t=60, b=50),
-      yaxis=dict(range=[0, 100]), showlegend=False,
-      xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#334155'),
-      yaxis_showgrid=True, yaxis_gridwidth=1, yaxis_gridcolor='#334155'
-    )
-    charts['humidity'] = json.loads(pio.to_json(fig_hum))
-    
-    # 4. Wind Speed
-    fig_wind = go.Figure()
-    colors_wind = ['#10b981' if i == 0 else '#34d399' for i in range(len(labels))]
-    fig_wind.add_trace(go.Bar(x=labels, y=wind_values, name='Wind Speed',
-      marker=dict(color=colors_wind, line=dict(color='#334155', width=1)),
-      hovertemplate='<b>%{x}</b><br>Wind Speed: %{y:.1f} kph<extra></extra>'
-    ))
-    fig_wind.update_layout(
-      title='Wind Speed', xaxis_title='Day', yaxis_title='kph',
-      hovermode='x unified', plot_bgcolor='#0f172a', paper_bgcolor='#1e293b',
-      font=dict(color='#cbd5e1'), height=300, margin=dict(l=50, r=30, t=60, b=50),
-      showlegend=False,
-      xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#334155'),
-      yaxis_showgrid=True, yaxis_gridwidth=1, yaxis_gridcolor='#334155'
-    )
-    charts['wind'] = json.loads(pio.to_json(fig_wind))
-    
-    # 5. Monthly Temperature
-    days_in_month = list(range(1, 31))
-    base_temp = float(temp_values[0])
-    np.random.seed(42)  # For consistency
-    monthly_temps = [base_temp + 3*np.sin(d/5) + np.random.randn()*0.5 for d in days_in_month]
-    
-    fig_monthly = go.Figure()
-    fig_monthly.add_trace(go.Scatter(x=days_in_month, y=monthly_temps, mode='lines', name='Daily Temperature',
-      line=dict(color='#f97316', width=3), fill='tozeroy', fillcolor='rgba(249, 115, 22, 0.2)',
-      marker=dict(size=6, color='#f97316'),
-      hovertemplate='<b>Day %{x}</b><br>Temperature: %{y:.1f}°C<extra></extra>'
-    ))
-    fig_monthly.update_layout(
-      title='Monthly Temperature Trend', xaxis_title='Day', yaxis_title='°C',
-      hovermode='x unified', plot_bgcolor='#0f172a', paper_bgcolor='#1e293b',
-      font=dict(color='#cbd5e1'), height=350, margin=dict(l=50, r=50, t=60, b=50),
-      showlegend=False,
-      xaxis=dict(showgrid=True, gridwidth=1, gridcolor='#334155'),
-      yaxis_showgrid=True, yaxis_gridwidth=1, yaxis_gridcolor='#334155'
-    )
-    charts['monthly'] = json.loads(pio.to_json(fig_monthly))
-    
-    return jsonify(charts)
-  except Exception as e:
-    return jsonify({'error': str(e)}), 500
 
 
 @app.route('/visualization')
