@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Human Comfort Index - Welcome</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(99, 102, 241, 0.8);
+            }
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 3s infinite;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900 text-slate-100 h-screen overflow-hidden flex items-center justify-center relative">
+
+    <!-- Ambient Background -->
+    <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute top-20 left-20 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"
+            style="animation-delay: 0s;"></div>
+        <div class="absolute bottom-20 right-20 w-96 h-96 bg-cyan-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"
+            style="animation-delay: 2s;"></div>
+        <div
+            class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-900 rounded-full mix-blend-multiply filter blur-[100px] opacity-10">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="relative z-10 text-center max-w-4xl px-4">
+        <div class="mb-8 inline-block animate-float">
+            <div
+                class="w-32 h-32 mx-auto bg-gradient-to-br from-cyan-400 to-purple-600 rounded-full flex items-center justify-center shadow-2xl animate-pulse-glow">
+                <span class="text-6xl">🌍</span>
+            </div>
+        </div>
+
+        <h1
+            class="text-7xl font-black mb-6 bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent drop-shadow-lg">
+            Human Comfort Index
+        </h1>
+
+        <p class="text-2xl text-slate-300 mb-12 font-light max-w-2xl mx-auto leading-relaxed">
+            Advanced weather analytics and real-time comfort monitoring for a better living environment.
+        </p>
+
+        <div class="space-y-6">
+            <a href="{{ url_for('dashboard') }}"
+                class="group relative inline-flex items-center justify-center px-12 py-5 text-lg font-bold text-white transition-all duration-200 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 hover:scale-105 hover:shadow-2xl">
+                <span
+                    class="absolute inset-0 w-full h-full -mt-1 rounded-lg opacity-30 bg-gradient-to-b from-transparent via-transparent to-black"></span>
+                <span class="relative flex items-center gap-3">
+                    Proceed
+                    <span class="text-2xl group-hover:translate-x-1 transition-transform">➜</span>
+                </span>
+            </a>
+
+            <div class="flex justify-center gap-8 mt-12 text-sm text-slate-500 uppercase tracking-widest">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-cyan-500"></span> Real-time
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span> API Powered
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Global Data
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="absolute bottom-6 w-full text-center text-slate-600 text-sm">
+        &copy; 2025 HCI Project. All rights reserved.
+    </footer>
+
+</body>
+
+</html>

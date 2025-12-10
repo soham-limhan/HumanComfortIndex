@@ -1,0 +1,228 @@
+      @keyframes float-left-right {
+        0%, 100% { transform: translateX(0px); }
+        50% { transform: translateX(30px); }
+      }
+      @keyframes float-up-down {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+      }
+      @keyframes spin-sun {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes wind-blow {
+        0%, 100% { transform: scaleX(1); }
+        50% { transform: scaleX(1.2); }
+      }
+      @keyframes cloud-drift {
+        0%, 100% { transform: translateX(-20px); }
+        50% { transform: translateX(20px); }
+      }
+      @keyframes slide-in {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
+      }
+      .animate-float-lr {
+        animation: float-left-right 4s ease-in-out infinite;
+      }
+      .animate-float-ud {
+        animation: float-up-down 3s ease-in-out infinite;
+      }
+      .animate-spin-sun {
+        animation: spin-sun 20s linear infinite;
+      }
+      .animate-wind-blow {
+        animation: wind-blow 2s ease-in-out infinite;
+      }
+      .animate-cloud-drift {
+        animation: cloud-drift 5s ease-in-out infinite;
+      }
+      .animate-slide-in {
+        animation: slide-in 0.6s ease-out;
+      }
+      .animate-glow {
+        animation: glow-pulse 2s ease-in-out infinite;
+      }
+      .card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+      .theme-transition {
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+      }
+      body.light-mode {
+        background: linear-gradient(to bottom, #f0f9ff, #e0e7ff, #eff6ff) !important;
+        color: #1e293b !important;
+      }
+      body.light-mode * {
+        color-scheme: light;
+      }
+      /* Light mode text colors */
+      body.light-mode .text-slate-100,
+      body.light-mode .text-slate-300,
+      body.light-mode .text-slate-400,
+      body.light-mode .text-muted {
+        color: #475569 !important;
+      }
+      body.light-mode .text-slate-500 {
+        color: #64748b !important;
+      }
+      body.light-mode .text-slate-600 {
+        color: #475569 !important;
+      }
+      /* Light mode card backgrounds */
+      body.light-mode .bg-slate-950,
+      body.light-mode .from-slate-950,
+      body.light-mode .bg-gradient-to-b.from-slate-950,
+      body.light-mode .bg-gradient-to-br.from-slate-950 {
+        background-color: #f1f5f9 !important;
+        background: #f1f5f9 !important;
+      }
+      body.light-mode .bg-slate-900,
+      body.light-mode .bg-slate-800,
+      body.light-mode .to-slate-900,
+      body.light-mode .to-slate-800,
+      body.light-mode .bg-gradient-to-br.to-slate-800,
+      body.light-mode .bg-gradient-to-br.to-slate-900 {
+        background-color: #f8fafc !important;
+        background: #f8fafc !important;
+      }
+      body.light-mode .bg-slate-800\/60 {
+        background-color: rgba(241, 245, 249, 0.6) !important;
+      }
+      body.light-mode .bg-slate-800\/50 {
+        background-color: rgba(241, 245, 249, 0.5) !important;
+      }
+      body.light-mode .bg-slate-800\/30 {
+        background-color: rgba(241, 245, 249, 0.3) !important;
+      }
+      /* Light mode borders */
+      body.light-mode .border-slate-700,
+      body.light-mode .border-slate-600,
+      body.light-mode .border-slate-700\/50 {
+        border-color: #cbd5e1 !important;
+      }
+      body.light-mode .border-amber-500\/20,
+      body.light-mode .border-amber-500\/30,
+      body.light-mode .border-amber-400\/30 {
+        border-color: #fbbf24 !important;
+      }
+      /* Light mode hover states */
+      body.light-mode .hover\:bg-slate-700\/50:hover,
+      body.light-mode .hover\:bg-slate-700\/60:hover {
+        background-color: rgba(241, 245, 249, 0.7) !important;
+      }
+      body.light-mode .hover\:bg-slate-800\/30:hover {
+        background-color: rgba(241, 245, 249, 0.4) !important;
+      }
+      /* Light mode gradient overlays */
+      body.light-mode .backdrop-blur-sm {
+        background-color: rgba(241, 245, 249, 0.9) !important;
+      }
+      /* Light mode fixed background */
+      body.light-mode .fixed.inset-0 {
+        background: linear-gradient(to bottom, #f0f9ff, #e0e7ff, #eff6ff) !important;
+      }
+      /* Light mode specific card styles */
+      body.light-mode .bg-gradient-to-br {
+        background: linear-gradient(to bottom right, #f1f5f9, #f8fafc) !important;
+      }
+      body.light-mode .from-indigo-600,
+      body.light-mode .from-purple-600 {
+        color: #4f46e5 !important;
+      }
+      body.light-mode h1,
+      body.light-mode h2,
+      body.light-mode h3,
+      body.light-mode h4,
+      body.light-mode h5,
+      body.light-mode h6 {
+        color: #0f172a !important;
+      }
+      /* Keep sun and clouds visible in light mode */
+      body.light-mode .bg-gradient-to-br.from-yellow-300 {
+        background: linear-gradient(to bottom right, #fcd34d, #f59e0b, #ea580c) !important;
+      }
+      body.light-mode .w-16.h-8.bg-white,
+      body.light-mode .w-14.h-7.bg-white {
+        background-color: #ffffff !important;
+        opacity: 0.95 !important;
+      }
+      body.light-mode .animate-spin-sun {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      }
+      body.light-mode .rounded-full.shadow-2xl.flex.items-center.justify-center {
+        background: linear-gradient(to bottom, #bfdbfe, #dbeafe, #f0f9ff) !important;
+      }
+      .dark-mode-toggle {
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .dark-mode-toggle:hover {
+        transform: scale(1.1);
+      }
+      /* Autocomplete dropdown styles */
+      #city-suggestions {
+        z-index: 9999999 !important;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        margin-top: 0.25rem !important;
+      }
+      #fetch-weather-btn {
+        position: relative;
+        z-index: 1 !important;
+      }
+      .mb-6 {
+        overflow: visible !important;
+      }
+      /* Ensure parent containers don't clip the dropdown */
+      div.relative {
+        overflow: visible !important;
+        z-index: auto !important;
+      }
+      /* Ensure the input container and all parent containers allow the dropdown to appear above */
+      .rounded-xl.shadow-lg {
+        overflow: visible !important;
+      }
+      /* Ensure weather cards don't interfere with dropdown */
+      .card-hover {
+        position: relative;
+        z-index: auto !important;
+      }
+      .rounded-2xl.overflow-hidden {
+        position: relative;
+        z-index: auto !important;
+      }
+      .city-suggestion-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid rgba(251, 146, 60, 0.1);
+        color: #e2e8f0;
+      }
+      .city-suggestion-item:hover {
+        background-color: rgba(251, 146, 60, 0.2);
+      }
+      .city-suggestion-item:last-child {
+        border-bottom: none;
+      }
+      .city-suggestion-item.active {
+        background-color: rgba(251, 146, 60, 0.3);
+      }
+
+      /* Plotly sizing helpers */
+      .plotly-container { width: 100% !important; height: 100% !important; }
+      .plotly { width: 100% !important; height: 100% !important; }
+      #chart-hci, #chart-temp, #chart-humidity, #chart-wind, #chart-monthly { width:100%; height:100%; }

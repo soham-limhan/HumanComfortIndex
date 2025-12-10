@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Human Comfort Index - Real-time Weather Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body class="bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900 text-slate-100 min-h-screen p-6 theme-transition">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 z-0 opacity-30 theme-transition" id="bgGradient">
+      <div class="absolute top-20 left-10 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
+      <div class="absolute top-40 right-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse animation-delay-2000"></div>
+      <div class="absolute -bottom-8 left-20 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse animation-delay-4000"></div>
+    </div>
+    
+    <div class="max-w-6xl mx-auto relative z-10">
+      <!-- Header with Dynamic Animated Logo -->
+      <div class="mb-8 rounded-2xl overflow-hidden shadow-2xl animate-slide-in">
+        <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-1">
+          <div class="bg-gradient-to-br from-slate-950/95 to-slate-900/95 backdrop-blur-sm p-8 rounded-xl border border-gradient-to-r from-cyan-400/20 to-purple-400/20 theme-transition">
+            <!-- Top Right - Theme Toggle -->
+            <div class="flex justify-end mb-4">
+              <button id="themeToggle" class="dark-mode-toggle bg-slate-800 hover:bg-slate-700 text-yellow-400 border border-slate-700">
+                <span id="themeIcon" class="text-2xl">🌙</span>
+              </button>
+            </div>
+            
+            <div class="flex items-center justify-between gap-6">
+              <div class="flex-1">
+                <h1 class="text-6xl font-bold bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent mb-2">Human Comfort Index</h1>
+                <p class="text-lg text-slate-300">Real-time Comfort Analysis & Advanced Weather Analytics</p>
+                <div class="flex gap-4 mt-4 flex-wrap">
+                  <div class="flex items-center gap-2 text-sm text-cyan-300 card-hover cursor-default"><span class="text-xl">🎯</span> <span>Precision Data</span></div>
+                  <div class="flex items-center gap-2 text-sm text-purple-300 card-hover cursor-default"><span class="text-xl">📊</span> <span>AI Analytics</span></div>
+                  <div class="flex items-center gap-2 text-sm text-pink-300 card-hover cursor-default"><span class="text-xl">⚡</span> <span>Real-time</span></div>
+                </div>
+              </div>
+              
+              <!-- Dynamic Animated Logo -->
+              <div class="flex flex-col items-center gap-3">
+                <div class="relative w-48 h-48 bg-gradient-to-b from-blue-300 to-blue-100 rounded-full shadow-2xl flex items-center justify-center animate-glow">
+                  <!-- Cloud 1 - Top Left -->
+                  <div class="absolute top-6 left-4 w-16 h-8 bg-white rounded-full opacity-90 shadow-lg animate-cloud-drift"></div>
+                  
+                  <!-- Cloud 2 - Top Right -->
+                  <div class="absolute top-12 right-6 w-14 h-7 bg-white rounded-full opacity-85 shadow-lg animate-cloud-drift" style="animation-delay: 2s;"></div>
+                  
+                  <!-- Sun - Center -->
+                  <div class="animate-spin-sun">
+                    <div class="w-14 h-14 bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-400 rounded-full shadow-xl"></div>
+                  </div>
+                  
+                  <!-- Wind Lines - Bottom -->
+                  <div class="absolute bottom-8 left-6 right-6 space-y-2">
+                    <div class="h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full animate-wind-blow"></div>
+                    <div class="h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full animate-wind-blow" style="animation-delay: 0.4s;"></div>
+                  </div>
+                </div>
+                
+                <a href="/visualization" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg font-bold transition-all transform hover:scale-105 card-hover">📊 Dashboard</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="mb-8">
+
+      <div class="mb-6">
+        <!-- Manual Entry -->
+        <div class="rounded-xl shadow-lg mb-6">
+          <div class="bg-gradient-to-r from-orange-500 to-red-500 p-1 rounded-xl">
+            <div class="bg-slate-800/60 backdrop-blur-sm p-6 rounded-lg">
+              <label class="text-sm font-bold text-orange-300 flex items-center gap-2 mb-3">
+                <span class="text-lg">⌨️</span>
+                <span><h2>Enter City:</h2></span>
+              </label>
+              <div class="flex gap-3 items-start">
+                <div class="relative flex-1">
+                  <input id="location-input" type="text" placeholder="Enter city name or coordinates (lat,lon)" class="w-full p-4 rounded-lg bg-slate-700/60 border-2 border-orange-400/50 text-slate-100 placeholder:text-slate-500 focus:border-orange-300 focus:outline-none transition-all hover:border-orange-400" autocomplete="off" />
+                  <div id="city-suggestions" class="bg-slate-800/95 backdrop-blur-sm border border-orange-400/50 rounded-lg shadow-2xl max-h-60 overflow-y-auto hidden"></div>
+                </div>
+                <button id="fetch-weather-btn" class="relative z-10 px-6 py-4 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 hover:from-cyan-400 hover:via-blue-400 hover:to-indigo-400 text-white rounded-lg font-bold text-lg shadow-xl transition-all transform hover:scale-105 hover:shadow-2xl whitespace-nowrap">
+                  <span class="flex items-center justify-center gap-2">
+                    <span class="text-2xl">🔍</span>
+                    <span>Get Weather & HCI Analysis</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Options Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+          <div class="rounded-lg overflow-hidden shadow-lg">
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-500 p-1">
+              <select id="units" class="w-full p-3 rounded-lg bg-slate-800/60 border border-blue-400/50 text-slate-100 focus:border-blue-300 focus:outline-none cursor-pointer transition-all font-semibold">
+                <option value="metric">🌡️ Celsius</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="rounded-lg overflow-hidden shadow-lg">
+            <div class="bg-gradient-to-r from-violet-500 to-purple-500 p-1">
+              <select id="forecast_days" class="w-full p-3 rounded-lg bg-slate-800/60 border border-violet-400/50 text-slate-100 focus:border-violet-300 focus:outline-none cursor-pointer transition-all font-semibold">
+                <option value="0">📅 Now</option>
+                <option value="1">📆 1 Day</option>
+                <option value="2">📆 2 Days</option>
+                <option value="3" selected>📆 3 Days</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2 p-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg shadow-lg">
+            <span class="text-lg">✅</span>
+            <span class="text-sm font-bold text-white">🌫️ AQI</span>
+          </div>
+          
+          <div class="flex items-center gap-2 p-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg shadow-lg">
+            <span class="text-lg">✅</span>
+            <span class="text-sm font-bold text-white">☀️ UV</span>
+          </div>
+          
+          <div class="rounded-lg overflow-hidden shadow-lg">
+            <div class="bg-gradient-to-r from-pink-500 to-rose-500 p-1">
+              <select id="profile" class="w-full p-3 rounded-lg bg-slate-800/60 border border-pink-400/50 text-slate-100 focus:border-pink-300 focus:outline-none cursor-pointer transition-all font-semibold text-sm">
+                <option value="general">👤 General</option>
+                <option value="asthma">🫁 Asthma</option>
+                <option value="elderly_child">👴👧 Elderly</option>
+                <option value="athlete">🏃 Athlete</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="status-message" class="mb-4 text-sm font-semibold text-transparent bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text"></div>
+
+      <!-- Weather Cards Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- HCI Card -->
+        <div class="rounded-2xl overflow-hidden shadow-2xl card-hover animate-slide-in">
+          <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 p-1">
+            <div class="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-sm p-8 rounded-xl theme-transition">
+              <div class="flex items-center gap-3 mb-6">
+                <span class="text-4xl animate-pulse">🎯</span>
+                <h3 class="text-2xl font-bold text-transparent bg-gradient-to-r from-amber-300 to-orange-300 bg-clip-text">Human Comfort Index</h3>
+              </div>
+              <div id="hci-value" class="text-7xl font-black text-center my-6 text-transparent bg-gradient-to-r from-amber-300 via-orange-300 to-red-300 bg-clip-text animate-pulse">--</div>
+              <div id="comfort-badge" class="text-center px-6 py-3 rounded-full text-sm font-bold mb-4 bg-gradient-to-r transition-all duration-300">--</div>
+              <div id="comfort-desc" class="text-center text-sm text-slate-300 mb-6 italic">--</div>
+              
+              <!-- Band, Env, Rec section -->
+              <div class="space-y-3 text-center text-sm mb-6 pb-6 border-b border-amber-500/30">
+                <div class="text-slate-300">Band: <span id="comfort-band" class="font-semibold text-amber-300">--</span></div>
+                <div class="text-slate-300">Env: <span id="comfort-env" class="font-semibold text-amber-300">--</span></div>
+                <div class="text-slate-300">Rec: <span id="comfort-rec" class="font-semibold text-amber-300">--</span></div>
+              </div>
+              
+              <div class="space-y-4 pt-6 border-t border-amber-500/30">
+                <div class="flex justify-between items-center p-2 rounded hover:bg-slate-800/30 transition-all">
+                  <span class="text-slate-400 text-sm font-semibold">📊 Weighted HCI</span>
+                  <span id="weighted-hci" class="font-bold text-lg text-amber-300">--</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                  <div class="bg-slate-800/50 p-3 rounded-lg border border-amber-400/30 hover:border-amber-400/60 hover:bg-slate-700/50 transition-all cursor-default">
+                    <div class="text-slate-500 font-semibold">AQI</div>
+                    <div id="comp-aqi" class="text-amber-200 font-bold text-lg mt-1">--</div>
+                  </div>
+                  <div class="bg-slate-800/50 p-3 rounded-lg border border-amber-400/30 hover:border-amber-400/60 hover:bg-slate-700/50 transition-all cursor-default">
+                    <div class="text-slate-500 font-semibold">Temp</div>
+                    <div id="comp-temp" class="text-amber-200 font-bold text-lg mt-1">--</div>
+                  </div>
+                  <div class="bg-slate-800/50 p-3 rounded-lg border border-amber-400/30 hover:border-amber-400/60 hover:bg-slate-700/50 transition-all cursor-default">
+                    <div class="text-slate-500 font-semibold">Humidity</div>
+                    <div id="comp-humidity" class="text-amber-200 font-bold text-lg mt-1">--</div>
+                  </div>
+                  <div class="bg-slate-800/50 p-3 rounded-lg border border-amber-400/30 hover:border-amber-400/60 hover:bg-slate-700/50 transition-all cursor-default">
+                    <div class="text-slate-500 font-semibold">UV</div>
+                    <div id="comp-uv" class="text-amber-200 font-bold text-lg mt-1">--</div>
+                  </div>
+                  <div class="bg-slate-800/50 p-3 rounded-lg border border-amber-400/30 hover:border-amber-400/60 hover:bg-slate-700/50 transition-all cursor-default">
+                    <div class="text-slate-500 font-semibold">Wind</div>
+                    <div id="comp-wind" class="text-amber-200 font-bold text-lg mt-1">--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Weather Info Card -->
+        <div class="lg:col-span-2 rounded-2xl overflow-hidden shadow-2xl card-hover animate-slide-in">
+          <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-1">
+            <div class="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-sm p-6 rounded-xl theme-transition">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex-1">
+                  <p id="loc" class="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text">--</p>
+                  <div class="flex items-center gap-3 mt-2">
+                    <div id="weatherIcon" class="text-4xl animate-bounce" data-weather-icon>🌡️</div>
+                    <p id="cond" class="text-base text-slate-300">--</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="rounded-lg overflow-hidden card-hover">
+                  <div class="bg-gradient-to-r from-red-500 to-orange-500 p-1">
+                    <div class="bg-slate-800/60 p-4 rounded text-center hover:bg-slate-700/60 transition-all">
+                      <div class="text-xs text-slate-400 mb-2">🌡️ Temperature</div>
+                      <div id="temp" class="text-2xl font-bold text-red-300">--</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="rounded-lg overflow-hidden card-hover">
+                  <div class="bg-gradient-to-r from-orange-500 to-yellow-500 p-1">
+                    <div class="bg-slate-800/60 p-4 rounded text-center hover:bg-slate-700/60 transition-all">
+                      <div class="text-xs text-slate-400 mb-2">📊 Avg Temp</div>
+                      <div id="avgtemp_c" class="text-2xl font-bold text-yellow-300">--</div>
+                    </div>
+                  </div>
+                </div>
+                
+
+              </div>
+              
+              <div id="aqi" class="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700/50 text-sm text-slate-300 hover:bg-slate-700/50 transition-all"></div>
+            </div>
+          </div>
+        </div>
+
+      <!-- Forecast Section -->
+      <div id="forecast-section" class="mt-10"></div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>
