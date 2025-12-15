@@ -10,10 +10,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
-<body
-    class="bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900 text-slate-100 min-h-screen p-6 theme-transition">
+<body class="text-slate-100 min-h-screen p-6 theme-transition bg-slate-950">
+
+    <!-- Fixed Background Image -->
+    <div class="fixed inset-0 z-0">
+        <img src="{{ url_for('static', filename='images/bg.jpg') }}" alt="Background"
+            class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-black/50"></div>
+    </div>
+
     <!-- Animated Background (same look as main) -->
-    <div class="fixed inset-0 z-0 opacity-30 theme-transition" id="bgGradient">
+    <div class="fixed inset-0 z-0 opacity-30 theme-transition pointer-events-none" id="bgGradient">
         <div
             class="absolute top-20 left-10 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse">
         </div>

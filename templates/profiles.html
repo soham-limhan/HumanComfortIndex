@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HCI Profiles - Human Comfort Index</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(99, 102, 241, 0.8);
+            }
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 3s infinite;
+        }
+
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body class="text-slate-100 min-h-screen p-6 bg-slate-950">
+
+    <!-- Background Image -->
+    <div class="fixed inset-0 z-0">
+        <img src="{{ url_for('static', filename='images/bg.jpg') }}" alt="Background"
+            class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-black/50"></div>
+    </div>
+
+    <!-- Ambient Background -->
+    <div class="fixed inset-0 pointer-events-none opacity-30">
+        <div class="absolute top-20 left-20 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"
+            style="animation-delay: 0s;"></div>
+        <div class="absolute bottom-20 right-20 w-96 h-96 bg-cyan-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"
+            style="animation-delay: 2s;"></div>
+        <div
+            class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-900 rounded-full mix-blend-multiply filter blur-[100px] opacity-10">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto relative z-10">
+        <!-- Header -->
+        <div class="mb-8 rounded-2xl overflow-hidden shadow-2xl">
+            <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-1">
+                <div class="bg-gradient-to-br from-slate-950/95 to-slate-900/95 backdrop-blur-sm p-8 rounded-xl">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1
+                                class="text-5xl font-black mb-2 bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 bg-clip-text text-transparent">
+                                HCI Calculation Profiles
+                            </h1>
+                            <p class="text-lg text-slate-300">Understanding how different profiles weight environmental
+                                factors</p>
+                        </div>
+                        <a href="{{ url_for('dashboard') }}"
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg font-bold transition-all transform hover:scale-105 card-hover">
+                            ← Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Introduction -->
+        <div class="mb-8 rounded-xl overflow-hidden shadow-xl">
+            <div class="bg-gradient-to-r from-cyan-500 to-blue-500 p-1">
+                <div class="bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold text-cyan-300 mb-3 flex items-center gap-2">
+                        <span class="text-3xl">ℹ️</span> About HCI Profiles
+                    </h2>
+                    <p class="text-slate-300 leading-relaxed">
+                        The Human Comfort Index (HCI) is calculated using a weighted formula that considers multiple
+                        environmental factors. Different user profiles weight these factors differently based on
+                        specific health needs and
+                        activity levels.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profiles Grid - Dynamically Loaded -->
+        <div id="profiles-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Profiles will be loaded here via JavaScript -->
+            <div class="col-span-full text-center py-12">
+                <div
+                    class="animate-spin inline-block w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full">
+                </div>
+                <p class="text-slate-400 mt-4">Loading profiles...</p>
+            </div>
+        </div>
+
+        <!-- Formula Explanation -->
+        <div class="rounded-xl overflow-hidden shadow-xl mb-8">
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-1">
+                <div class="bg-slate-900/90 backdrop-blur-sm p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold text-purple-300 mb-3 flex items-center gap-2">
+                        <span class="text-3xl">🧮</span> Calculation Formula
+                    </h2>
+                    <p class="text-slate-300 leading-relaxed mb-3">
+                        The HCI score (0-100, where 100 is optimal) is calculated using a weighted formula that combines
+                        all environmental factors.
+                    </p>
+                    <div
+                        class="bg-slate-800/60 p-4 rounded-lg font-mono text-sm text-cyan-300 border border-purple-500/30">
+                        HCI = 100 - Σ(weight<sub>factor</sub> × score<sub>factor</sub>)
+                    </div>
+                    <p class="text-slate-400 text-sm mt-3">
+                        Each environmental factor is normalized to a 0-100 scale (where higher values indicate worse
+                        conditions),
+                        then weighted according to the selected profile, and subtracted from 100 to produce the final
+                        comfort score.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="relative z-10 text-center text-slate-600 text-sm mt-12 pb-6">
+        &copy; 2025 HCI Project. All rights reserved. By Soham and Nimish.
+    </footer>
+
+    <script>
+        // Color schemes for different profiles
+        const colorSchemes = [
+            { from: 'cyan-500', to: 'blue-500', text: 'cyan-300 to-blue-300', icon: '👤' },
+            { from: 'orange-500', to: 'red-500', text: 'orange-300 to-red-300', icon: '🫁' },
+            { from: 'purple-500', to: 'pink-500', text: 'purple-300 to-pink-300', icon: '👴' },
+            { from: 'green-500', to: 'teal-500', text: 'green-300 to-teal-300', icon: '🏃' },
+            { from: 'yellow-500', to: 'orange-500', text: 'yellow-300 to-orange-300', icon: '☀️' },
+            { from: 'indigo-500', to: 'purple-500', text: 'indigo-300 to-purple-300', icon: '🌤️' },
+            { from: 'pink-500', to: 'rose-500', text: 'pink-300 to-rose-300', icon: '🤧' },
+            { from: 'blue-500', to: 'cyan-500', text: 'blue-300 to-cyan-300', icon: '👶' },
+            { from: 'red-500', to: 'orange-500', text: 'red-300 to-orange-300', icon: '❤️' },
+            { from: 'teal-500', to: 'green-500', text: 'teal-300 to-green-300', icon: '🌍' }
+        ];
+
+        const weightColors = {
+            'aqi': { border: 'amber-400', text: 'amber-300', label: 'AQI' },
+            'temp': { border: 'red-400', text: 'red-300', label: 'Temp' },
+            'humidity': { border: 'blue-400', text: 'blue-300', label: 'Humid' },
+            'heatindex': { border: 'orange-400', text: 'orange-300', label: 'Heat Idx' },
+            'dewpoint': { border: 'cyan-400', text: 'cyan-300', label: 'Dew Pt' },
+            'wind': { border: 'green-400', text: 'green-300', label: 'Wind' },
+            'uv': { border: 'yellow-400', text: 'yellow-300', label: 'UV' },
+            'pressure': { border: 'purple-400', text: 'purple-300', label: 'Pressure' },
+            'precipitation': { border: 'sky-400', text: 'sky-300', label: 'Precip' },
+            'cloud': { border: 'slate-400', text: 'slate-300', label: 'Cloud' }
+        };
+
+        // Fetch and display profiles
+        async function loadProfiles() {
+            try {
+                const response = await fetch('/api/get_profiles');
+                const profiles = await response.json();
+
+                const grid = document.getElementById('profiles-grid');
+                grid.innerHTML = '';
+
+                profiles.forEach((profile, index) => {
+                    const colors = colorSchemes[index % colorSchemes.length];
+                    const card = createProfileCard(profile, colors);
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading profiles:', error);
+                document.getElementById('profiles-grid').innerHTML = `
+                    <div class="col-span-full text-center text-red-400 py-12">
+                        <p>Error loading profiles. Please refresh the page.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function createProfileCard(profile, colors) {
+            const card = document.createElement('div');
+            card.className = 'rounded-2xl overflow-hidden shadow-2xl card-hover';
+
+            // Get non-zero weights
+            const weights = Object.entries(profile.weights)
+                .filter(([key, value]) => value > 0)
+                .sort((a, b) => b[1] - a[1]); // Sort by weight descending
+
+            const weightsHTML = weights.map(([key, value]) => {
+                const color = weightColors[key] || { border: 'slate-400', text: 'slate-300', label: key };
+                const isHighest = value >= Math.max(...weights.map(w => w[1])) - 0.01;
+                const ringClass = isHighest ? `ring-2 ring-${color.border.replace('-400', '-500')}/50` : '';
+
+                return `
+                    <div class="bg-slate-800/60 p-3 rounded-lg border border-${color.border}/30 text-center ${ringClass}">
+                        <div class="text-xs text-slate-500 font-semibold">${color.label}</div>
+                        <div class="text-${color.text} font-bold text-lg mt-1">${(value * 100).toFixed(0)}%</div>
+                    </div>
+                `;
+            }).join('');
+
+            card.innerHTML = `
+                <div class="bg-gradient-to-r from-${colors.from} to-${colors.to} p-1">
+                    <div class="bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-sm p-6 rounded-xl">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-5xl">${colors.icon}</span>
+                            <div>
+                                <h3 class="text-2xl font-bold text-transparent bg-gradient-to-r from-${colors.text} bg-clip-text">
+                                    ${profile.name}
+                                </h3>
+                                <p class="text-slate-400 text-sm">Specialized weighting</p>
+                            </div>
+                        </div>
+
+                        <p class="text-slate-300 mb-4 leading-relaxed">
+                            ${profile.description}
+                        </p>
+
+                        <div class="space-y-2">
+                            <h4 class="text-sm font-bold text-slate-400 mb-3">Weight Distribution:</h4>
+                            <div class="grid grid-cols-5 gap-2">
+                               ${weightsHTML}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Load profiles when page loads
+        document.addEventListener('DOMContentLoaded', loadProfiles);
+    </script>
+
+</body>
+
+</html>

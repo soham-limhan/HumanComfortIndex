@@ -119,14 +119,73 @@ def compute_component_scores(temp_c, humidity, uv, wind_kph, aqi_pm25, aqi_us=No
     'aqi_val': aqi_val
   }
 
-# Profile weights (percent -> fraction)
-PROFILE_WEIGHTS = {
-  # split the Temp+Humidity weight into equal temp and humidity parts
-  'general': {'aqi':0.30,'temp':0.15,'humidity':0.15,'uv':0.20,'wind':0.20},
-  'asthma': {'aqi':0.50,'temp':0.10,'humidity':0.10,'uv':0.15,'wind':0.15},
-  'elderly_child': {'aqi':0.30,'temp':0.20,'humidity':0.20,'uv':0.20,'wind':0.10},
-  'athlete': {'aqi':0.20,'temp':0.15,'humidity':0.15,'uv':0.20,'wind':0.30},
-}
+# Profile weights - loaded from CSV
+_profiles_cache = None
+
+def load_profiles():
+  """Load profiles from Profiles.csv file with caching"""
+  global _profiles_cache
+  if _profiles_cache is None:
+    _profiles_cache = {}
+    try:
+      csv_path = os.path.join(os.path.dirname(__file__), 'Profiles.csv')
+      with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+          profile_name = row.get('Profile', '').strip()
+          if not profile_name:
+            continue
+          
+          # Convert all weight columns to float
+          weights = {}
+          for key in ['AQI', 'Temp', 'Humidity', 'HeatIndex', 'DewPoint', 'Wind', 'UV', 'Pressure', 'Precipitation', 'Cloud']:
+            try:
+              weights[key.lower()] = float(row.get(key, 0))
+            except (ValueError, TypeError):
+              weights[key.lower()] = 0.0
+          
+          _profiles_cache[profile_name.lower().replace('/', '_').replace(' ', '_')] = {
+            'name': profile_name,
+            'weights': weights,
+            'description': row.get('Description', '').strip()
+          }
+      
+      # Add a fallback general profile if not in CSV
+      if 'general' not in _profiles_cache:
+        _profiles_cache['general'] = {
+          'name': 'General',
+          'weights': {'aqi': 0.30, 'temp': 0.15, 'humidity': 0.15, 'heatindex': 0.0, 'dewpoint': 0.0, 'wind': 0.20, 'uv': 0.20, 'pressure': 0.0, 'precipitation': 0.0, 'cloud': 0.0},
+          'description': 'Balanced for average healthy adults'
+        }
+    except Exception as e:
+      print(f"Error loading profiles: {e}")
+      # Fallback to default general profile
+      _profiles_cache = {
+        'general': {
+          'name': 'General',
+          'weights': {'aqi': 0.30, 'temp': 0.15, 'humidity': 0.15, 'heatindex': 0.0, 'dewpoint': 0.0, 'wind': 0.20, 'uv': 0.20, 'pressure': 0.0, 'precipitation': 0.0, 'cloud': 0.0},
+          'description': 'Balanced for average healthy adults'
+        }
+      }
+  return _profiles_cache
+
+# Legacy PROFILE_WEIGHTS for backward compatibility - now loads from CSV
+def get_profile_weights():
+  """Get profile weights in the old format for backward compatibility"""
+  profiles = load_profiles()
+  legacy_weights = {}
+  for key, profile in profiles.items():
+    # Extract only the core weights that were in the old system
+    legacy_weights[key] = {
+      'aqi': profile['weights'].get('aqi', 0),
+      'temp': profile['weights'].get('temp', 0),
+      'humidity': profile['weights'].get('humidity', 0),
+      'uv': profile['weights'].get('uv', 0),
+      'wind': profile['weights'].get('wind', 0)
+    }
+  return legacy_weights
+
+PROFILE_WEIGHTS = get_profile_weights()
 
 # Location data for dropdowns
 # Cache for cities data
@@ -641,6 +700,30 @@ def dashboard():
 @app.route('/')
 def landing():
   return render_template('initial.html')
+
+@app.route('/profiles')
+def profiles():
+  return render_template('profiles.html')
+
+@app.route('/api/get_profiles', methods=['GET'])
+def get_profiles():
+  """Return all profiles from CSV"""
+  try:
+    profiles_data = load_profiles()
+    # Convert to list format for frontend
+    profiles_list = []
+    for key, profile in profiles_data.items():
+      profiles_list.append({
+        'key': key,
+        'name': profile['name'],
+        'description': profile['description'],
+        'weights': profile['weights']
+      })
+    return jsonify(profiles_list), 200
+  except Exception as e:
+    return jsonify({'error': str(e)}), 500
+
+
 
 
 @app.route('/api/generate_charts', methods=['POST'])

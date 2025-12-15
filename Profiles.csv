@@ -1,0 +1,11 @@
+Profile,AQI,Temp,Humidity,HeatIndex,DewPoint,Wind,UV,Pressure,Precipitation,Cloud,Description
+Asthma,0.45,0.10,0.10,0.05,0.03,0.10,0.03,0.01,0.02,0.01,"For respiratory-sensitive individuals prone to asthma or breathing difficulty."
+Elderly/Child,0.25,0.30,0.20,0.10,0.05,0.05,0.03,0.01,0.005,0.005,"For elderly or young users with weaker thermoregulation."
+Outdoor Worker/Athlete,0.15,0.30,0.15,0.20,0.03,0.12,0.03,0.01,0.005,0.005,"For people exposed to prolonged outdoor environments doing physical work."
+UV Sensitive/Skin Sensitive,0.10,0.15,0.10,0.05,0.02,0.05,0.45,0.01,0.04,0.03,"For users prone to sunburn or UV exposure issues."
+Office Worker/Commuter,0.35,0.20,0.15,0.05,0.03,0.05,0.03,0.01,0.10,0.03,"For users mostly indoors but affected by commute and short outdoor activity."
+Allergy Sensitive,0.30,0.10,0.15,0.03,0.05,0.20,0.03,0.01,0.08,0.05,"For users with seasonal or dust-triggered allergies."
+Children Outdoor Activity/Sports,0.20,0.25,0.15,0.20,0.05,0.07,0.05,0.01,0.01,0.01,"For kids' playtime evaluation ensuring safety in warm climates."
+Cardiac/Elderly High Risk,0.30,0.30,0.15,0.10,0.05,0.04,0.03,0.01,0.01,0.01,"For those with heart conditions highly sensitive to heat and pollution."
+Traveler/Tourist,0.15,0.20,0.10,0.10,0.03,0.05,0.15,0.01,0.15,0.06,"Suggested for users exploring outdoors and sightseeing."
+Construction Supervisor/Safety,0.30,0.20,0.10,0.08,0.02,0.20,0.04,0.01,0.03,0.02,"For safety-focused outdoor occupations where wind, pollution, and heat matter."

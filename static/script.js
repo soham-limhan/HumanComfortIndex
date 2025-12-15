@@ -3,6 +3,8 @@ let tempChartInstance = null;
 let humidityChartInstance = null;
 let windChartInstance = null;
 let monthlyTempChartInstance = null;
+let hciTrendChartInstance = null;
+let tempTrendChartInstance = null;
 
 function destroyCharts() {
     if (hciChartInstance) hciChartInstance.destroy();
@@ -10,6 +12,8 @@ function destroyCharts() {
     if (humidityChartInstance) humidityChartInstance.destroy();
     if (windChartInstance) windChartInstance.destroy();
     if (monthlyTempChartInstance) monthlyTempChartInstance.destroy();
+    if (hciTrendChartInstance) hciTrendChartInstance.destroy();
+    if (tempTrendChartInstance) tempTrendChartInstance.destroy();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +28,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const outCond = document.getElementById('cond');
     const outTemp = document.getElementById('temp');
     const outAvgTemp = document.getElementById('avgtemp_c');
+
+    // Profile icon mapping
+    const profileIcons = {
+        'asthma': '🫁',
+        'elderly_child': '👴',
+        'outdoor_worker_athlete': '🏃',
+        'uv_sensitive_skin_sensitive': '☀️',
+        'office_worker_commuter': '💼',
+        'allergy_sensitive': '🤧',
+        'children_outdoor_activity_sports': '👶',
+        'cardiac_elderly_high_risk': '❤️',
+        'traveler_tourist': '🌍',
+        'construction_supervisor_safety': '👷',
+        'general': '👤'
+    };
+
+    // Load profiles from API and populate dropdown
+    async function loadProfileOptions() {
+        try {
+            const response = await fetch('/api/get_profiles');
+            const profiles = await response.json();
+            const profileSelect = document.getElementById('profile');
+
+            // Clear loading option
+            profileSelect.innerHTML = '';
+
+            // Add profiles to dropdown
+            profiles.forEach(profile => {
+                const option = document.createElement('option');
+                option.value = profile.key;
+                const icon = profileIcons[profile.key] || '👤';
+                option.textContent = `${icon} ${profile.name}`;
+                profileSelect.appendChild(option);
+            });
+
+            // Select 'general' by default
+            profileSelect.value = 'general';
+        } catch (error) {
+            console.error('Error loading profiles:', error);
+            // Fallback to default option
+            const profileSelect = document.getElementById('profile');
+            profileSelect.innerHTML = '<option value="general">👤 General</option>';
+        }
+    }
+
+    // Load profiles on page load
+    loadProfileOptions();
+
 
     async function fetchWeather() {
         let q = locInput.value || 'London';
@@ -157,6 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 destroyCharts();
             }
 
+            // Render trend charts
+            // renderTrendCharts(data); // Removed - trend graphs no longer in HTML
+
+
             // If AQI included, render a small summary
             const aqiEl = document.getElementById('aqi');
             if (data.aqi) {
@@ -167,6 +223,167 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(e);
             status.textContent = '';
         } finally { fetchButton.disabled = false; }
+    }
+
+    // Function to render trend charts
+    function renderTrendCharts(data) {
+        // Prepare data for charts
+        const labels = ['Current'];
+        const hciValues = [data.hci ? parseFloat(data.hci) : null];
+        const tempValues = [data.temperature_c ? parseFloat(data.temperature_c) : null];
+
+        // Add forecast data if available
+        if (data.forecast && data.forecast.length) {
+            data.forecast.forEach(day => {
+                labels.push(day.date || '');
+                hciValues.push(day.possible_hci ? parseFloat(day.possible_hci) : null);
+                tempValues.push(day.avgtemp_c ? parseFloat(day.avgtemp_c) : null);
+            });
+        }
+
+        // Render HCI Trend Chart
+        const hciCanvas = document.getElementById('hciTrendChart');
+        if (hciCanvas) {
+            if (hciTrendChartInstance) hciTrendChartInstance.destroy();
+            const ctx = hciCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(251, 191, 36, 0.3)');
+            gradient.addColorStop(1, 'rgba(251, 191, 36, 0.0)');
+
+            hciTrendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'HCI Score',
+                        data: hciValues,
+                        borderColor: '#fbbf24',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#fbbf24',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#fbbf24',
+                            bodyColor: '#cbd5e1',
+                            borderColor: '#fbbf24',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.1)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.1)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render Temperature Trend Chart
+        const tempCanvas = document.getElementById('tempTrendChart');
+        if (tempCanvas) {
+            if (tempTrendChartInstance) tempTrendChartInstance.destroy();
+            const ctx = tempCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
+            gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
+
+            tempTrendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: tempValues,
+                        borderColor: '#ef4444',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#ef4444',
+                            bodyColor: '#cbd5e1',
+                            borderColor: '#ef4444',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (context) {
+                                    return 'Temp: ' + context.parsed.y.toFixed(1) + '°C';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.1)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1',
+                                callback: function (value) {
+                                    return value + '°C';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.1)'
+                            },
+                            ticks: {
+                                color: '#cbd5e1'
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
     // City autocomplete functionality
