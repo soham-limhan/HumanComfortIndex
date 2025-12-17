@@ -731,7 +731,7 @@ def generate_charts():
   """Generate interactive Plotly charts as JSON"""
   try:
     data = request.get_json()
-    location = data.get('location', 'London')
+    location = data.get('location', 'Pune')
     profile = data.get('profile', 'general')
     
     # Call the helper directly
