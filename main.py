@@ -13,7 +13,7 @@ import numpy as np
 
 # Flask app and WeatherAPI key
 app = Flask(__name__)
-WEATHERAPI_API_KEY = "509a4bd590d64c0fb6a33306250810" # Put your WeatherAPI key here or set as env variable
+WEATHERAPI_API_KEY = "YOUR_API_KEY" # Put your WeatherAPI key here or set as env variable
 
 
 # ----- HCI helpers -----
